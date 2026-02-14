@@ -1,0 +1,152 @@
+name: Auto Build on ELRS Release
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+env:
+  UPSTREAM_REPO: ExpressLRS/ExpressLRS
+  REGULATORY_DOMAIN: -DRegulatory_Domain_ISM_2400
+  MODULE_NAME: E28-2G4M27SX
+  BAND_NAME: ISM2400
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest ELRS release
+        id: elrs_release
+        run: |
+          RELEASE_DATA=$(curl -s https://api.github.com/repos/${{ env.UPSTREAM_REPO }}/releases/latest)
+          TAG=$(echo "$RELEASE_DATA" | jq -r '.tag_name')
+          PUBLISHED=$(echo "$RELEASE_DATA" | jq -r '.published_at')
+          PRERELEASE=$(echo "$RELEASE_DATA" | jq -r '.prerelease')
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "published=$PUBLISHED" >> $GITHUB_OUTPUT
+          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
+
+      - name: Check if stable and older than 7 days
+        id: check_age
+        run: |
+          if [ "${{ steps.elrs_release.outputs.prerelease }}" == "true" ]; then
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          PUBLISHED="${{ steps.elrs_release.outputs.published }}"
+          PUBLISHED_TS=$(date -d "$PUBLISHED" +%s)
+          NOW_TS=$(date +%s)
+          AGE_DAYS=$(( (NOW_TS - PUBLISHED_TS) / 86400 ))
+          if [ $AGE_DAYS -lt 7 ]; then
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if already built
+        id: check_built
+        if: steps.check_age.outputs.should_build == 'true'
+        run: |
+          TAG="${{ steps.elrs_release.outputs.tag }}"
+          MY_RELEASE="ELRS_${TAG}_${{ env.MODULE_NAME }}"
+          EXISTING=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://api.github.com/repos/${{ github.repository }}/releases/tags/$MY_RELEASE)
+          if [ "$EXISTING" == "200" ]; then
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "release_tag=$MY_RELEASE" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout upstream ELRS
+        if: steps.check_built.outputs.should_build == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.UPSTREAM_REPO }}
+          ref: ${{ steps.elrs_release.outputs.tag }}
+
+      - name: Set up Python
+        if: steps.check_built.outputs.should_build == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        if: steps.check_built.outputs.should_build == 'true'
+        run: pip install platformio
+
+      - name: Configure build
+        if: steps.check_built.outputs.should_build == 'true'
+        working-directory: src
+        run: |
+          sed -i 's/^-DRegulatory_Domain_.*/#&/' user_defines.txt
+          echo "${{ env.REGULATORY_DOMAIN }}" >> user_defines.txt
+          echo "-DLOCK_ON_FIRST_CONNECTION" >> user_defines.txt
+          echo "-DAUTO_WIFI_ON_INTERVAL=60" >> user_defines.txt
+
+      - name: Build RX firmware (ESP32-C3)
+        if: steps.check_built.outputs.should_build == 'true'
+        working-directory: src
+        run: |
+          pio run -e Unified_ESP32C3_2400_RX_via_UART
+          cp .pio/build/Unified_ESP32C3_2400_RX_via_UART/firmware.bin \
+             ../ELRS_${{ steps.elrs_release.outputs.tag }}_RX_ESP32C3_${{ env.MODULE_NAME }}.bin
+
+      - name: Create hardware layout file
+        if: steps.check_built.outputs.should_build == 'true'
+        run: |
+          cat > ${{ env.MODULE_NAME }}_RX.json << 'EOF'
+          {
+              "product_name": "DIY E28-2G4M27SX RX",
+              "serial_rx": 20,
+              "serial_tx": 21,
+              "radio_busy": 3,
+              "radio_dio1": 1,
+              "radio_miso": 5,
+              "radio_mosi": 4,
+              "radio_nss": 7,
+              "radio_rst": 2,
+              "radio_sck": 6,
+              "power_rxen": 10,
+              "power_txen": 0,
+              "power_min": 0,
+              "power_high": 6,
+              "power_max": 6,
+              "power_default": 6,
+              "power_control": 0,
+              "power_values": [-18, -15, -12, -9, -6, -3, 0],
+              "power_lna_gain": 13,
+              "led": 8
+          }
+          EOF
+
+      - name: Create Release
+        if: steps.check_built.outputs.should_build == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.check_built.outputs.release_tag }}
+          name: "ELRS ${{ steps.elrs_release.outputs.tag }} RX for ${{ env.MODULE_NAME }} (2.4GHz)"
+          body: |
+            ## Auto-built from ELRS ${{ steps.elrs_release.outputs.tag }}
+
+            RX firmware for ${{ env.MODULE_NAME }} module (SX1281, 27dBm/500mW).
+
+            ### Hardware
+            - **MCU:** ESP32-C3
+            - **Radio:** ${{ env.MODULE_NAME }} (SX1281)
+            - **Power:** 27dBm (500mW) with built-in PA/LNA
+
+            ### Frequency
+            - Band: ISM 2.4GHz (2400-2500MHz)
+
+            ### Flashing
+            Use [esptool](https://github.com/espressif/esptool) or ELRS Configurator.
+
+            ---
+            *Auto-built by GitHub Actions*
+          files: |
+            ELRS_${{ steps.elrs_release.outputs.tag }}_RX_ESP32C3_${{ env.MODULE_NAME }}.bin
+            ${{ env.MODULE_NAME }}_RX.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
