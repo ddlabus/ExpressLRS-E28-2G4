@@ -2,7 +2,7 @@
 
 Custom ELRS RX firmware for E28-2G4M27SX module (SX1281, 27dBm/500mW).
 
-![E28-2G4M27SX Module](https://www.cdebyte.com/u_file/2105/photo/59a69e6e59.png)
+![E28-2G4M27SX Module](images/E28-2G4M27SX.jpg)
 
 ## Hardware
 
@@ -10,7 +10,7 @@ Custom ELRS RX firmware for E28-2G4M27SX module (SX1281, 27dBm/500mW).
 - **MCU:** ESP32-C3
 - **Radio:** E28-2G4M27SX (SX1281, 27dBm/500mW)
 
-![ESP32-C3](https://www.espressif.com/sites/default/files/modules/ESP32-C3-MINI-1-N4-module.png)
+![ESP32-C3](images/ESP32-C3.webp)
 
 ## Frequency
 - Band: ISM 2.4GHz (2400-2500MHz)
