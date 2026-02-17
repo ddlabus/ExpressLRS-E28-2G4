@@ -2,15 +2,15 @@
 
 Custom ELRS RX firmware for E28-2G4M27SX module (SX1281, 27dBm/500mW).
 
-![E28-2G4M27SX Module](images/E28-2G4M27SX.jpg)
+![E28-2G4M27SX Module](https://raw.githubusercontent.com/ddlabus/ExpressLRS-E28-2G4/main/images/E28-2G4M27SX.jpg)
 
 ## Hardware
 
 ### Receiver (RX only)
-- **MCU:** ESP32-C3
+- **MCU:** ESP32-C3 SuperMini
 - **Radio:** E28-2G4M27SX (SX1281, 27dBm/500mW)
 
-![ESP32-C3](images/ESP32-C3.jpg)
+![ESP32-C3 SuperMini](https://raw.githubusercontent.com/ddlabus/ExpressLRS-E28-2G4/main/images/ESP32-C3.avif)
 
 ## Frequency
 - Band: ISM 2.4GHz (2400-2500MHz)
@@ -19,13 +19,15 @@ Custom ELRS RX firmware for E28-2G4M27SX module (SX1281, 27dBm/500mW).
 
 ## Wiring Diagram
 
-### RX: ESP32-C3 + E28-2G4M27SX
+### RX: ESP32-C3 SuperMini + E28-2G4M27SX
 
 ```
-ESP32-C3                   E28-2G4M27SX
+ESP32-C3 SuperMini         E28-2G4M27SX
 ┌─────────────────┐        ┌─────────────────┐
+│                 │        │                 │
 │ GPIO20 (RX) ────┼────────┼─ (to FC)        │
 │ GPIO21 (TX) ────┼────────┼─ (from FC)      │
+│                 │        │                 │
 │ GPIO1  ─────────┼────────┼─ DIO1           │
 │ GPIO2  ─────────┼────────┼─ RST            │
 │ GPIO3  ─────────┼────────┼─ BUSY           │
@@ -33,9 +35,12 @@ ESP32-C3                   E28-2G4M27SX
 │ GPIO5  ─────────┼────────┼─ MISO           │
 │ GPIO6  ─────────┼────────┼─ SCK            │
 │ GPIO7  ─────────┼────────┼─ NSS            │
+│                 │        │                 │
 │ GPIO0  ─────────┼────────┼─ TXEN           │
 │ GPIO10 ─────────┼────────┼─ RXEN           │
+│                 │        │                 │
 │ GPIO8  ─────────┼────────┼─ LED            │
+│                 │        │                 │
 │ 3V3    ─────────┼────────┼─ VCC (3.3V)     │
 │ GND    ─────────┼────────┼─ GND            │
 └─────────────────┘        └─────────────────┘
@@ -43,6 +48,8 @@ ESP32-C3                   E28-2G4M27SX
 
 | ESP32-C3 Pin | E28-2G4M27SX Pin | Function |
 |--------------|------------------|----------|
+| GPIO20 | - | Serial RX (to FC) |
+| GPIO21 | - | Serial TX (from FC) |
 | GPIO1 | DIO1 | Radio interrupt |
 | GPIO2 | RST | Radio reset |
 | GPIO3 | BUSY | Radio busy |
@@ -53,37 +60,27 @@ ESP32-C3                   E28-2G4M27SX
 | GPIO0 | TXEN | PA TX enable |
 | GPIO10 | RXEN | PA RX enable |
 | GPIO8 | - | LED |
-| GPIO20 | - | Serial RX (to FC) |
-| GPIO21 | - | Serial TX (from FC) |
+| 3V3 | VCC | Power 3.3V |
+| GND | GND | Ground |
 
 ---
 
-## Flashing Firmware on Virgin ESP32-C3
+## Flashing Firmware
 
-### Requirements
-- USB-TTL adapter (CH340, CP2102, FT232)
-- `pip install esptool`
+### RX (ESP32-C3 SuperMini)
 
-### Wiring for flashing
-```
-USB-TTL          ESP32-C3
-─────────        ────────
-TX      ──────── GPIO20 (RX)
-RX      ──────── GPIO21 (TX)
-3V3     ──────── 3V3
-GND     ──────── GND + GPIO9 (boot)
-```
+**Via USB-C (built-in bootloader):**
+1. Hold BOOT button
+2. Connect USB-C cable
+3. Release BOOT button
 
-**Note:** GPIO9 must be LOW during power-on to enter bootloader mode.
-
-### Flash command
 ```bash
-esptool.py --port /dev/ttyUSB0 --baud 460800 \
+esptool.py --port /dev/ttyACM0 --baud 460800 \
     --chip esp32c3 write_flash 0x0 ELRS_*_RX_ESP32C3_E28-2G4M27SX.bin
 ```
 
 ### After Flashing
-1. Disconnect GPIO9 from GND, power cycle
+1. Power cycle the module
 2. Connect to WiFi: `ExpressLRS RX`
 3. Configure at `10.0.0.1`
 
@@ -92,7 +89,13 @@ esptool.py --port /dev/ttyUSB0 --baud 460800 \
 ## Download
 See [Releases](https://github.com/ddlabus/ExpressLRS-E28-2G4/releases)
 
+## Files
+| File | Description |
+|------|-------------|
+| `ELRS_*_RX_ESP32C3_E28-2G4M27SX.bin` | Receiver firmware (ESP32-C3) |
+| `ESP32C3_SuperMini_RX.json` | RX hardware layout |
+
 ## Links
 - [E28-2G4M27SX Datasheet](https://www.cdebyte.com/products/E28-2G4M27SX)
-- [ESP32-C3 Datasheet](https://www.espressif.com/en/products/socs/esp32-c3)
+- [ESP32-C3 SuperMini](https://www.aliexpress.com/item/1005005967641936.html)
 - [ExpressLRS Documentation](https://www.expresslrs.org/)
