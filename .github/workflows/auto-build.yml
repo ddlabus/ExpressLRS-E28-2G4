@@ -84,7 +84,8 @@ jobs:
       - name: Create hardware layout files
         if: steps.check_built.outputs.should_build == 'true'
         run: |
-          cat > src/hardware/${{ env.MODULE_NAME }}_RX.json << 'EOF'
+          mkdir -p src/hardware/RX
+          cat > src/hardware/RX/${{ env.MODULE_NAME }}_RX.json << 'EOF'
           {
               "platform": "esp32-c3",
               "product_name": "DIY E28-2G4M27SX RX",
@@ -109,7 +110,7 @@ jobs:
               "led": 8
           }
           EOF
-          cp src/hardware/${{ env.MODULE_NAME }}_RX.json .
+          cp src/hardware/RX/${{ env.MODULE_NAME }}_RX.json .
 
       - name: Register custom hardware in targets.json
         if: steps.check_built.outputs.should_build == 'true'
