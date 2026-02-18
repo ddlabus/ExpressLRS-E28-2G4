@@ -148,8 +148,8 @@ jobs:
         if: steps.check_built.outputs.should_build == 'true'
         working-directory: src
         run: |
-          # Set board_config in the correct environment section
-          sed -i '/\[env:Unified_ESP32C3_2400_RX_via_UART\]/a board_config = diy.rx_2400.esp32c3_e28_2g4' platformio.ini
+          # Set board_config in targets/unified.ini (where the env is defined)
+          sed -i '/\[env:Unified_ESP32C3_2400_RX_via_UART\]/a board_config = diy.rx_2400.esp32c3_e28_2g4' targets/unified.ini
           pio run -e Unified_ESP32C3_2400_RX_via_UART
           cp .pio/build/Unified_ESP32C3_2400_RX_via_UART/firmware.bin \
              ../ELRS_${{ steps.elrs_release.outputs.tag }}_RX_ESP32C3_${{ env.MODULE_NAME }}.bin
