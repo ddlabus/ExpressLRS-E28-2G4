@@ -150,6 +150,8 @@ jobs:
         run: |
           # Fix ESP32-C3 CPU frequency (ELRS bug: inherits 240MHz from ESP32)
           sed -i '/\[env_common_esp32c3rx\]/a board_build.f_cpu = 160000000L' targets/common.ini
+          # Fix filesystem type for LittleFS (ELRS uses LittleFS, not SPIFFS)
+          sed -i '/\[env_common_esp32c3rx\]/a board_build.filesystem = littlefs' targets/common.ini
           # Set board_config to embed hardware JSON
           sed -i '/\[env:Unified_ESP32C3_2400_RX_via_UART\]/a board_config = diy.rx_2400.esp32c3_e28_2g4' targets/unified.ini
           pio run -e Unified_ESP32C3_2400_RX_via_UART
