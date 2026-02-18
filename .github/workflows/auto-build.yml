@@ -122,10 +122,9 @@ jobs:
 
           if 'diy' not in targets:
               targets['diy'] = {}
-          if 'rx' not in targets['diy']:
-              targets['diy']['rx'] = {}
-
-          targets['diy']['rx']['esp32c3_e28_2g4'] = {
+          if 'rx_2400' not in targets['diy']:
+              targets['diy']['rx_2400'] = {}
+          targets['diy']['rx_2400']['esp32c3_e28_2g4'] = {
               "product_name": "DIY ESP32-C3 SuperMini RX (E28-2G4M27SX)",
               "lua_name": "C3 2G4 RX",
               "layout_file": "E28-2G4M27SX_RX.json",
@@ -149,6 +148,8 @@ jobs:
         if: steps.check_built.outputs.should_build == 'true'
         working-directory: src
         run: |
+          # Set board_config to embed our hardware JSON
+          echo "board_config = diy.rx_2400.esp32c3_e28_2g4" >> platformio.ini
           pio run -e Unified_ESP32C3_2400_RX_via_UART
           cp .pio/build/Unified_ESP32C3_2400_RX_via_UART/firmware.bin \
              ../ELRS_${{ steps.elrs_release.outputs.tag }}_RX_ESP32C3_${{ env.MODULE_NAME }}.bin
