@@ -148,7 +148,9 @@ jobs:
         if: steps.check_built.outputs.should_build == 'true'
         working-directory: src
         run: |
-          # Set board_config in targets/unified.ini (where the env is defined)
+          # Fix ESP32-C3 CPU frequency (ELRS bug: inherits 240MHz from ESP32)
+          sed -i '/\[env_common_esp32c3rx\]/a board_build.f_cpu = 160000000L' targets/common.ini
+          # Set board_config to embed hardware JSON
           sed -i '/\[env:Unified_ESP32C3_2400_RX_via_UART\]/a board_config = diy.rx_2400.esp32c3_e28_2g4' targets/unified.ini
           pio run -e Unified_ESP32C3_2400_RX_via_UART
           cp .pio/build/Unified_ESP32C3_2400_RX_via_UART/firmware.bin \
